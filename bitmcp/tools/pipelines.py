@@ -123,9 +123,14 @@ def get_pipeline_step_log(
     from bitmcp.server import get_auth, BITBUCKET_API
 
     ws = get_workspace(workspace)
-    auth = get_auth()
+    auth, headers = get_auth()
     url = f"{BITBUCKET_API}/repositories/{ws}/{repo_slug}/pipelines/{pipeline_uuid}/steps/{step_uuid}/log"
-    response = httpx.get(url, auth=auth, timeout=60)
+    kwargs = {"timeout": 60}
+    if auth is not None:
+        kwargs["auth"] = auth
+    if headers:
+        kwargs.setdefault("headers", {}).update(headers)
+    response = httpx.get(url, **kwargs)
     response.raise_for_status()
     return response.text
 

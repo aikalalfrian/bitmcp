@@ -310,11 +310,20 @@ def get_pull_request_diff(
     from bitmcp.server import get_auth, BITBUCKET_API
 
     ws = get_workspace(workspace)
-    auth = get_auth()
+    auth, headers = get_auth()
     url = f"{BITBUCKET_API}/repositories/{ws}/{repo_slug}/pullrequests/{pr_id}/diff"
-    response = httpx.get(url, auth=auth, timeout=30)
-    response.raise_for_status()
-    return response.text
+    # Bitbucket may respond with a 302 redirect to the actual diff resource
+    # (e.g. signed URL or blob). Ensure the client follows redirects so the
+    # final diff body is returned instead of an intermediate 302 response.
+    with httpx.Client(follow_redirects=True, timeout=30) as client:
+        kwargs = {}
+        if auth is not None:
+            kwargs["auth"] = auth
+        if headers:
+            kwargs.setdefault("headers", {}).update(headers)
+        response = client.get(url, **kwargs)
+        response.raise_for_status()
+        return response.text
 
 
 @mcp.tool()
@@ -332,7 +341,16 @@ def get_pull_request_merge_status(
         workspace: Workspace slug. Jika kosong, gunakan default dari config.
     """
     ws = get_workspace(workspace)
-    return api_get(f"/repositories/{ws}/{repo_slug}/pullrequests/{pr_id}/mergecheck")
+    # The public Bitbucket API does not expose a `/mergecheck` resource.
+    # Use the documented pullrequest GET endpoint and read the `mergeable`
+    # property and related links/status instead.
+    pr = api_get(f"/repositories/{ws}/{repo_slug}/pullrequests/{pr_id}")
+    return {
+        "mergeable": pr.get("mergeable"),
+        "merge_link": (pr.get("links") or {}).get("merge"),
+        "merge_commit": pr.get("merge_commit"),
+        "state": pr.get("state"),
+    }
 
 
 @mcp.tool()

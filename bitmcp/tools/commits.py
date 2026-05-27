@@ -64,9 +64,14 @@ def get_commit_diff(
     from bitmcp.server import get_auth, BITBUCKET_API
 
     ws = get_workspace(workspace)
-    auth = get_auth()
+    auth, headers = get_auth()
     url = f"{BITBUCKET_API}/repositories/{ws}/{repo_slug}/diff/{spec}"
-    response = httpx.get(url, auth=auth, timeout=30)
+    kwargs = {"timeout": 30}
+    if auth is not None:
+        kwargs["auth"] = auth
+    if headers:
+        kwargs.setdefault("headers", {}).update(headers)
+    response = httpx.get(url, **kwargs)
     response.raise_for_status()
     return response.text
 
@@ -91,9 +96,14 @@ def get_file_contents(
     from bitmcp.server import get_auth, BITBUCKET_API
 
     ws = get_workspace(workspace)
-    auth = get_auth()
+    auth, headers = get_auth()
     url = f"{BITBUCKET_API}/repositories/{ws}/{repo_slug}/src/{branch}/{file_path}"
-    response = httpx.get(url, auth=auth, timeout=30)
+    kwargs = {"timeout": 30}
+    if auth is not None:
+        kwargs["auth"] = auth
+    if headers:
+        kwargs.setdefault("headers", {}).update(headers)
+    response = httpx.get(url, **kwargs)
     response.raise_for_status()
     return response.text
 
