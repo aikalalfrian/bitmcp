@@ -303,7 +303,12 @@ import bitmcp.tools  # noqa: E402, F401
 
 def main() -> None:
     """Entry point untuk MCP server."""
-    mcp.run()
+    try:
+        mcp.run()
+    except KeyboardInterrupt:
+        logger = logging.getLogger("bitmcp.server")
+        logger.info("Shutting down (KeyboardInterrupt)")
+        return
 
 
 if __name__ == "__main__":
