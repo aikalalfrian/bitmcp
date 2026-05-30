@@ -29,6 +29,10 @@ config.json
 *.swp
 *.swo
 
+# macOS metadata
+.DS_Store
+ds_store
+
 # Testing
 .pytest_cache/
 .coverage
